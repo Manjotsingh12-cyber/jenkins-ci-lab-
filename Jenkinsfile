@@ -8,11 +8,6 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                retry(2) {
-                    checkout scm
-                }
-            }
         }
         stage('Build') {
             steps {
