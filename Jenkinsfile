@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         APP_NAME = "jenkins-ci-lab"
-        BUILD_ENV = "production"
+        BUILD_ENV = "staging"
     }
 
     stages {
@@ -14,17 +14,11 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
+        stage('Show Environment') {
             steps {
-                echo 'Build stage running'
-            }
-        }
-        stage('Deploy to Production') {
-            when {
-                environment name: 'BUILD_ENV', value: 'production'
-            }
-            steps {
-                echo 'Deploying to production!'
+                sh 'echo "App name is: $APP_NAME"'
+                sh 'echo "Build env is: $BUILD_ENV"'
+                sh 'echo "Jenkins build number is: $BUILD_NUMBER"'
             }
         }
     }
