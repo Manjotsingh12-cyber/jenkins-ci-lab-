@@ -3,11 +3,16 @@ pipeline {
 
     environment {
         APP_NAME = "jenkins-ci-lab"
-        BUILD_ENV = "staging"
+        BUILD_ENV = "production"
     }
 
     stages {
         stage('Checkout') {
+            steps {
+                retry(2) {
+                    checkout scm
+                }
+            }
         }
         stage('Build') {
             steps {
