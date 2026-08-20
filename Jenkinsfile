@@ -4,14 +4,16 @@ pipeline {
     stages {
         stage('Checkout') {
             steps {
-                retry(3) {
+                retry(2) {
                     checkout scm
                 }
             }
         }
-        stage('Hello') {
+        stage('Confirm Checkout') {
             steps {
-                echo 'Pipeline is working'
+                sh 'echo "Checkout succeeded"'
+                sh 'git log -1 --oneline'
+                sh 'ls -la'
             }
         }
     }
