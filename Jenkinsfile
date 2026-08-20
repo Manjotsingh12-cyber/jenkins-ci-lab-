@@ -9,11 +9,15 @@ pipeline {
                 }
             }
         }
-        stage('Confirm Checkout') {
+        stage('Install Dependencies') {
             steps {
-                sh 'echo "Checkout succeeded"'
-                sh 'git log -1 --oneline'
-                sh 'ls -la'
+                sh 'python3 -m venv venv'
+                sh '. venv/bin/activate && pip install -r requirements.txt'
+            }
+        }
+        stage('Unit Tests') {
+            steps {
+                sh '. venv/bin/activate && pytest test_app.py -v'
             }
         }
     }
