@@ -2,7 +2,6 @@ pipeline {
     agent any
 
     environment {
-        APP_NAME = "jenkins-ci-lab"
         BUILD_ENV = "production"
     }
 
@@ -14,17 +13,20 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
-            steps {
-                echo 'Build stage running'
-            }
-        }
-        stage('Deploy to Production') {
+        stage('Deploy') {
             when {
                 environment name: 'BUILD_ENV', value: 'production'
             }
             steps {
-                echo 'Deploying toerer production!'
+                echo 'This only runs when BUILD_ENV is production'
+            }
+        }
+        stage('Skip Example') {
+            when {
+                environment name: 'BUILD_ENV', value: 'staging'
+            }
+            steps {
+                echo 'This only runs when BUILD_ENV is staging'
             }
         }
     }
