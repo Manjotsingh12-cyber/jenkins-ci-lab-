@@ -1,6 +1,11 @@
 pipeline {
     agent any
 
+    environment {
+        APP_NAME = "jenkins-ci-lab"
+        BUILD_ENV = "staging"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -9,20 +14,11 @@ pipeline {
                 }
             }
         }
-        stage('Build') {
+        stage('Show Environment') {
             steps {
-                echo 'Build stage running from GitHub - webhook test'
-            }
-        }
-        stage('Test') {
-            steps {
-                echo 'Test stage running from GitHub'
-            }
-        }
-        stage('Confirm Webhook Trigger') {
-            steps {
-                sh 'echo "This build should have started automatically, not manually"'
-                sh 'date'
+                sh 'echo "App name is: $APP_NAME"'
+                sh 'echo "Build env is: $BUILD_ENV"'
+                sh 'echo "Jenkins build number is: $BUILD_NUMBER"'
             }
         }
     }
