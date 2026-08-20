@@ -24,7 +24,7 @@ pipeline {
                 environment name: 'BUILD_ENV', value: 'production'
             }
             steps {
-                echo 'Deploying to production!'
+                echo 'Deploying toerer production!'
             }
         }
     }
