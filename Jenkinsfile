@@ -16,6 +16,7 @@ pipeline {
             steps {
                 sh 'git log -1 --oneline'
                 sh 'ls -la'
+                sh 'echo "Timing test run"'
             }
         }
     }
