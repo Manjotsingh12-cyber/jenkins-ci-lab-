@@ -9,15 +9,30 @@ pipeline {
                 }
             }
         }
-        stage('Install dependencies') {
+        stage('Install Dependencies') {
             steps {
                 sh 'python3 -m venv venv'
                 sh '. venv/bin/activate && pip install -r requirements.txt'
             }
         }
+        stage('Lint') {
+            steps {
+                sh '. venv/bin/activate && flake8 app.py test_app.py --max-line-length=100'
+            }
+        }
         stage('Unit Tests') {
             steps {
                 sh '. venv/bin/activate && pytest test_app.py -v'
+            }
+        }
+        stage('Docker Build') {
+            steps {
+                sh 'docker build -t jenkins-ci-lab:$BUILD_NUMBER .'
+            }
+        }
+        stage('Verify Image') {
+            steps {
+                sh 'docker images | grep jenkins-ci-lab'
             }
         }
     }
