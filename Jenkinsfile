@@ -35,5 +35,10 @@ pipeline {
                 sh 'docker images | grep jenkins-ci-lab'
             }
         }
+        stage('Trivy Scan') {
+            steps {
+                sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL jenkins-ci-lab:$BUILD_NUMBER'
+    }
+}
     }
 }
