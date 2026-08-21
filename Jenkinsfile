@@ -8,6 +8,10 @@ pipeline {
                 retry(2) {
                     checkout scm
                 }
+
+                stash name: 'source-code',
+                      includes: '**/*',
+                      useDefaultExcludes: false
             }
         }
 
@@ -36,6 +40,10 @@ pipeline {
             }
 
             steps {
+                deleteDir()
+
+                unstash 'source-code'
+
                 withSonarQubeEnv('SonarQube') {
                     sh '''
                         sonar-scanner \
