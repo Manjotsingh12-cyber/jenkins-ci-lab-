@@ -40,5 +40,14 @@ pipeline {
                 sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL jenkins-ci-lab:$BUILD_NUMBER'
     }
 }
+        stage('Push to ECR') {
+            steps {
+                sh '''
+                  aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 991362938746.dkr.ecr.ap-south-1.amazonaws.com
+                  docker tag jenkins-ci-lab:$BUILD_NUMBER 991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
+                  docker push 991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
+                 '''
+    }
+}
     }
 }
