@@ -1,7 +1,21 @@
 pipeline {
     agent any
 
+    options {
+        skipDefaultCheckout(true)
+    }
+
     stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+
+                stash name: 'source-code',
+                      includes: '**/*',
+                      useDefaultExcludes: false
+            }
+        }
 
         stage('Check SonarScanner') {
             agent {
@@ -9,21 +23,32 @@ pipeline {
             }
 
             steps {
+                deleteDir()
+
+                unstash 'source-code'
+
                 sh '''
-                    echo "=== Hostname ==="
+                    echo "=============================="
+                    echo "HOSTNAME"
+                    echo "=============================="
                     hostname
 
-                    echo "=== SonarScanner Location ==="
+                    echo "=============================="
+                    echo "SONARSCANNER LOCATION"
+                    echo "=============================="
                     which sonar-scanner
 
-                    echo "=== SonarScanner Version ==="
+                    echo "=============================="
+                    echo "SONARSCANNER VERSION"
+                    echo "=============================="
                     sonar-scanner --version
 
-                    echo "=== SonarQube Connectivity ==="
+                    echo "=============================="
+                    echo "SONARQUBE CONNECTION"
+                    echo "=============================="
                     curl -s http://10.100.1.6:9000/api/system/status
                 '''
             }
         }
-
     }
 }
