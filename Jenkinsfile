@@ -1,140 +1,44 @@
-pipeline {
+stage('SonarQube Analysis') {
 
-    agent any
+    agent {
+        label 'sonar-agent'
+    }
 
-    stages {
+    options {
+        skipDefaultCheckout(true)
+    }
 
-        stage('Checkout') {
-            steps {
-                retry(2) {
-                    checkout scm
-                }
-            }
-        }
+    steps {
+        deleteDir()
 
-        stage('Stash Source Code') {
-            steps {
-                stash name: 'source-code',
-                      includes: '**/*',
-                      useDefaultExcludes: false
-            }
-        }
+        unstash 'source-code'
 
-        stage('Install Dependencies') {
-            steps {
-                sh '''
-                    python3 -m venv venv
-                    . venv/bin/activate
-                    pip install -r requirements.txt
-                '''
-            }
-        }
+        sh '''
+            echo "=============================="
+            echo "HOSTNAME"
+            echo "=============================="
+            hostname
 
-        stage('Lint') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    flake8 app.py test_app.py --max-line-length=100
-                '''
-            }
-        }
+            echo "=============================="
+            echo "SONARSCANNER"
+            echo "=============================="
+            which sonar-scanner
+            sonar-scanner --version
 
-        stage('Unit Tests') {
-            steps {
-                sh '''
-                    . venv/bin/activate
-                    pytest test_app.py -v
-                '''
-            }
-        }
+            echo "=============================="
+            echo "SONARQUBE STATUS"
+            echo "=============================="
+            curl -s http://10.100.1.6:9000/api/system/status
 
-        stage('SonarQube Analysis') {
+            echo ""
+            echo "=============================="
+            echo "RUNNING SONARQUBE ANALYSIS"
+            echo "=============================="
 
-            agent {
-                label 'sonar-agent'
-            }
-
-            steps {
-
-                deleteDir()
-
-                unstash 'source-code'
-
-                sh '''
-                    echo "=============================="
-                    echo "HOSTNAME"
-                    echo "=============================="
-                    hostname
-
-                    echo "=============================="
-                    echo "SONARSCANNER"
-                    echo "=============================="
-                    which sonar-scanner
-                    sonar-scanner --version
-
-                    echo "=============================="
-                    echo "SONARQUBE STATUS"
-                    echo "=============================="
-                    curl -s http://10.100.1.6:9000/api/system/status
-
-                    echo ""
-                    echo "=============================="
-                    echo "RUNNING SONARQUBE ANALYSIS"
-                    echo "=============================="
-
-                    sonar-scanner \
-                      -Dsonar.projectKey=jenkins-ci-lab \
-                      -Dsonar.sources=. \
-                      -Dsonar.host.url=http://10.100.1.6:9000
-                '''
-            }
-        }
-
-        stage('Docker Build') {
-            steps {
-                sh '''
-                    docker build -t jenkins-ci-lab:$BUILD_NUMBER .
-                '''
-            }
-        }
-
-        stage('Verify Image') {
-            steps {
-                sh '''
-                    docker images | grep jenkins-ci-lab
-                '''
-            }
-        }
-
-        stage('Trivy Scan') {
-            steps {
-                sh '''
-                    trivy image \
-                      --exit-code 0 \
-                      --severity HIGH,CRITICAL \
-                      jenkins-ci-lab:$BUILD_NUMBER
-                '''
-            }
-        }
-
-        stage('Push to ECR') {
-            steps {
-                sh '''
-                    aws ecr get-login-password \
-                      --region ap-south-1 | \
-                    docker login \
-                      --username AWS \
-                      --password-stdin \
-                      991362938746.dkr.ecr.ap-south-1.amazonaws.com
-
-                    docker tag \
-                      jenkins-ci-lab:$BUILD_NUMBER \
-                      991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
-
-                    docker push \
-                      991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
-                '''
-            }
-        }
+            sonar-scanner \
+              -Dsonar.projectKey=jenkins-ci-lab \
+              -Dsonar.sources=. \
+              -Dsonar.host.url=http://10.100.1.6:9000
+        '''
     }
 }
