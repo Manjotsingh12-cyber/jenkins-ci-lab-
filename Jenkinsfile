@@ -1,156 +1,67 @@
 pipeline {
-
-    agent none
+    agent any
 
     stages {
 
         stage('Checkout') {
-            agent { label 'built-in' }
-
             steps {
-                checkout scm
-
-                stash name: 'source-code', includes: '**/*', useDefaultExcludes: false
+                retry(2) {
+                    checkout scm
+                }
             }
         }
 
-        stage('Check SonarScanner') {
-            agent { label 'sonar-agent' }
-
+        stage('Secret Scan') {
             steps {
-                deleteDir()
-
-                unstash 'source-code'
-
-                sh '''
-                    echo "=============================="
-                    echo "HOSTNAME"
-                    echo "=============================="
-                    hostname
-
-                    echo "=============================="
-                    echo "SONARSCANNER"
-                    echo "=============================="
-                    which sonar-scanner
-                    sonar-scanner --version
-
-                    echo "=============================="
-                    echo "SONARQUBE CONNECTION"
-                    echo "=============================="
-                    curl --fail --max-time 10 \
-                        http://10.100.1.6:9000/api/system/status
-                '''
+                sh 'gitleaks git -v --exit-code 1'
             }
         }
 
-        stage('Python Tests') {
-            agent { label 'sonar-agent' }
-
+        stage('Install Dependencies') {
             steps {
-                sh '''
-                    echo "=============================="
-                    echo "PYTHON TESTS"
-                    echo "=============================="
-
-                    python3 --version
-
-                    python3 -m venv venv
-
-                    ./venv/bin/pip install --upgrade pip
-                    ./venv/bin/pip install pytest flask
-
-                    ./venv/bin/pytest -v
-                '''
+                sh 'python3 -m venv venv'
+                sh '. venv/bin/activate && pip install -r requirements.txt'
             }
         }
 
-        stage('SonarQube Analysis') {
-            agent { label 'sonar-agent' }
-
+        stage('Lint') {
             steps {
-                sh '''
-                    echo "=============================="
-                    echo "SONARQUBE ANALYSIS"
-                    echo "=============================="
+                sh '. venv/bin/activate && flake8 app.py test_app.py --max-line-length=100'
+            }
+        }
 
-                    sonar-scanner \
-                      -Dsonar.projectKey=jenkins-ci-lab \
-                      -Dsonar.projectName=jenkins-ci-lab \
-                      -Dsonar.sources=. \
-                      -Dsonar.host.url=http://10.100.1.6:9000
-                '''
+        stage('Unit Tests') {
+            steps {
+                sh '. venv/bin/activate && pytest test_app.py -v'
             }
         }
 
         stage('Docker Build') {
-            agent { label 'sonar-agent' }
-
             steps {
-                sh '''
-                    echo "=============================="
-                    echo "DOCKER BUILD"
-                    echo "=============================="
-
-                    docker build -t jenkins-ci-lab:latest .
-                '''
+                sh 'docker build -t jenkins-ci-lab:$BUILD_NUMBER .'
             }
         }
 
         stage('Verify Image') {
-            agent { label 'sonar-agent' }
-
             steps {
-                sh '''
-                    echo "=============================="
-                    echo "DOCKER IMAGE"
-                    echo "=============================="
-
-                    docker images jenkins-ci-lab
-
-                    docker inspect jenkins-ci-lab:latest > /dev/null
-
-                    echo "Docker image verified successfully."
-                '''
+                sh 'docker images | grep jenkins-ci-lab'
             }
         }
 
         stage('Trivy Scan') {
-            agent { label 'sonar-agent' }
-
             steps {
-                sh '''
-                    echo "=============================="
-                    echo "TRIVY SECURITY SCAN"
-                    echo "=============================="
-
-                    trivy image \
-                      --severity HIGH,CRITICAL \
-                      --exit-code 1 \
-                      jenkins-ci-lab:latest
-                '''
+                sh 'trivy image --exit-code 0 --severity HIGH,CRITICAL jenkins-ci-lab:$BUILD_NUMBER'
             }
         }
 
         stage('Push to ECR') {
-            agent { label 'sonar-agent' }
-
             steps {
-                echo 'ECR push will be configured after the security pipeline is working.'
+                sh '''
+                    aws ecr get-login-password --region ap-south-1 | docker login --username AWS --password-stdin 991362938746.dkr.ecr.ap-south-1.amazonaws.com
+                    docker tag jenkins-ci-lab:$BUILD_NUMBER 991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
+                    docker push 991362938746.dkr.ecr.ap-south-1.amazonaws.com/jenkins-ci-lab:$BUILD_NUMBER
+                '''
             }
-        }
-    }
-
-    post {
-        success {
-            echo '================================'
-            echo 'PIPELINE SUCCESS'
-            echo '================================'
-        }
-
-        failure {
-            echo '================================'
-            echo 'PIPELINE FAILED'
-            echo '================================'
         }
     }
 }
