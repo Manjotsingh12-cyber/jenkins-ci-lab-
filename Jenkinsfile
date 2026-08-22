@@ -5,7 +5,7 @@ pipeline {
 
         stage('Checkout') {
             steps {
-                retry(2) {
+                retry(1) {
                     checkout scm
                 }
             }
